@@ -16,6 +16,10 @@
 
 #include "glError.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #define SHADER_DIR "../shader/"
 
 struct VertexType {
@@ -28,10 +32,34 @@ float heightMap(const glm::vec2 position) {
   return 2.0 * sin(position.x) * sin(position.y);
 }
 
+const std::string frag_shader(R"frag(
+#version 150
+
+in vec4 fPosition;
+in vec4 fColor;
+in vec4 fLightPosition;
+in vec3 fNormal;
+out vec4 color;
+
+void main(void)
+{       
+  vec3 o =-normalize(fPosition.xyz);
+  vec3 n = normalize(fNormal);
+  vec3 r = reflect(o,n);
+  vec3 l = normalize(fLightPosition.xyz-fPosition.xyz);
+
+  float ambient = 0.1;
+  float diffuse = 0.7*max(0.0,dot(n,l));
+  float specular = 0.6*pow(max(0.0,-dot(r,l)),4.0);
+
+  color = fColor * ( ambient + diffuse + specular );
+}
+)frag");
+
 VertexType getHeightMap(const glm::vec2 position) {
   const glm::vec2 dx(1.0, 0.0);
   const glm::vec2 dy(0.0, 1.0);
-
+ 
   VertexType v;
   float h = heightMap(position);
   float hx = 100.f * (heightMap(position + 0.01f * dx) - h);
@@ -47,8 +75,9 @@ VertexType getHeightMap(const glm::vec2 position) {
 
 MyApplication::MyApplication()
     : Application(),
-      vertexShader(SHADER_DIR "/shader.vert", GL_VERTEX_SHADER),
-      fragmentShader(SHADER_DIR "/shader.frag", GL_FRAGMENT_SHADER),
+      vertexShader(Shader::fromFile(SHADER_DIR "/shader.vert", GL_VERTEX_SHADER)),
+      //fragmentShader(Shader::fromFile(SHADER_DIR "/shader.frag", GL_FRAGMENT_SHADER)),
+      fragmentShader(Shader::fromString(frag_shader, GL_FRAGMENT_SHADER)),
       shaderProgram({vertexShader, fragmentShader}) {
   glCheckError(__FILE__, __LINE__);
 
@@ -113,6 +142,7 @@ MyApplication::MyApplication()
 
   // vao end
   glBindVertexArray(0);
+
 }
 
 void MyApplication::loop() {
@@ -131,6 +161,11 @@ void MyApplication::loop() {
   glClear(GL_COLOR_BUFFER_BIT);
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // feed inputs to dear imgui, start new frame
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
 
   shaderProgram.use();
 
@@ -155,4 +190,14 @@ void MyApplication::loop() {
   glBindVertexArray(0);
 
   shaderProgram.unuse();
+
+  // render your GUI
+  ImGui::Begin("Demo window");
+  ImGui::Button("Hello!");
+  ImGui::End();
+
+  // Render dear imgui into screen
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 }

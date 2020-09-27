@@ -19,8 +19,9 @@ using namespace std;
 using namespace glm;
 
 // file reading
-void getFileContents(const char* filename, vector<char>& buffer) {
-  ifstream file(filename, ios_base::binary);
+vector<char> getFileContents(const char* filename) {
+  std::vector<char> buffer;
+  std::ifstream file(filename, ios_base::binary);
   if (file) {
     file.seekg(0, ios_base::end);
     streamsize size = file.tellg();
@@ -31,20 +32,20 @@ void getFileContents(const char* filename, vector<char>& buffer) {
     }
     buffer.push_back('\0');
   } else {
-    throw std::invalid_argument(string("The file ") + filename +
-                                " doesn't exists");
+    std::cout << std::string("The file ") + filename + " doesn't exist";
+    exit(1);
   }
+  return buffer;
 }
 
-Shader::Shader(const std::string& filename, GLenum type) {
-  // file loading
-  vector<char> fileContent;
-  getFileContents(filename.c_str(), fileContent);
+Shader::Shader(const vector<char> & fileContent, GLenum type) {
 
   // creation
   handle = glCreateShader(type);
-  if (handle == 0)
-    throw std::runtime_error("[Error] Impossible to create a new Shader");
+  if (handle == 0) {
+    std::cout << "[Error] Impossible to create a new Shader";
+    exit(1);
+  }
 
   // code source assignation
   const char* shaderText(&fileContent[0]);
@@ -63,13 +64,21 @@ Shader::Shader(const std::string& filename, GLenum type) {
     char* log = new char[logsize + 1];
     glGetShaderInfoLog(handle, logsize, &logsize, log);
 
-    cout << "[Error] compilation error: " << filename << endl;
-    cout << log << endl;
+    std::cout << "[Error] compilation error: " << std::endl;
+    std::cout << log << endl;
 
     exit(EXIT_FAILURE);
-  } else {
-    cout << "[Info] Shader " << filename << " compiled successfully" << endl;
-  }
+  } 
+}
+
+Shader Shader::fromFile(const std::string& filename, GLenum type) {
+  return Shader(getFileContents(filename.c_str()), type);
+}
+
+Shader Shader::fromString(const std::string& str, GLenum type) {
+  std::vector<char> buffer(str.begin(), str.end());
+  buffer.push_back('\0');
+  return Shader(buffer, type);
 }
 
 GLuint Shader::getHandle() const {
@@ -80,8 +89,10 @@ Shader::~Shader() {}
 
 ShaderProgram::ShaderProgram() {
   handle = glCreateProgram();
-  if (!handle)
-    throw std::runtime_error("Impossible to create a new shader program");
+  if (!handle) {
+    std::cout << "Impossible to create a new shader program";
+    exit(1);
+  }
 }
 
 ShaderProgram::ShaderProgram(std::initializer_list<Shader> shaderList)
@@ -167,11 +178,23 @@ void ShaderProgram::setAttribute(const std::string& name,
   setAttribute(name, size, stride, offset, false, GL_FLOAT);
 }
 
+void ShaderProgram::setUniform(const std::string& name, float x, float y) {
+  glUniform2f(uniform(name), x, y);
+}
+
 void ShaderProgram::setUniform(const std::string& name,
                                float x,
                                float y,
                                float z) {
   glUniform3f(uniform(name), x, y, z);
+}
+
+void ShaderProgram::setUniform(const std::string& name, const vec2& v) {
+  glUniform2fv(uniform(name), 1, value_ptr(v));
+}
+
+void ShaderProgram::setUniform(const std::string& name, const dvec2& v) {
+  glUniform2dv(uniform(name), 1, value_ptr(v));
 }
 
 void ShaderProgram::setUniform(const std::string& name, const vec3& v) {

@@ -13,6 +13,10 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 using namespace std;
 
 Application* currentApplication = NULL;
@@ -25,7 +29,7 @@ Application& Application::getInstance() {
 }
 
 Application::Application()
-    : state(stateReady), width(640), height(480), title("Application") {
+    : state(stateReady), width(1000), height(1000), title("Application") {
   currentApplication = this;
 
   cout << "[Info] GLFW initialisation" << endl;
@@ -73,6 +77,7 @@ Application::Application()
 
   // vsync
   // glfwSwapInterval(false);
+
 }
 
 GLFWwindow* Application::getWindow() const {
@@ -97,6 +102,22 @@ void Application::run() {
   // Make the window's context current
   glfwMakeContextCurrent(window);
 
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+  //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+  // Setup Dear ImGui style
+  ImGui::StyleColorsDark();
+  //ImGui::StyleColorsClassic();
+
+  // Setup Platform/Renderer bindings
+  const char* glsl_version = "#version 130";
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+
   time = glfwGetTime();
 
   while (state == stateRun) {
@@ -118,13 +139,17 @@ void Application::run() {
     glfwPollEvents();
   }
 
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
   glfwTerminate();
 }
 
 void Application::detectWindowDimensionChange() {
   int w, h;
   glfwGetWindowSize(getWindow(), &w, &h);
-  dimensionChanged = (w != width or h != height);
+  dimensionChanged = (w != width || h != height);
   if (dimensionChanged) {
     width = w;
     height = h;

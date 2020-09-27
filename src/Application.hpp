@@ -48,7 +48,7 @@ class Application {
   float getWindowRatio();
   bool windowDimensionChanged();
 
- private:
+ protected:
   enum State { stateReady, stateRun, stateExit };
 
   State state;

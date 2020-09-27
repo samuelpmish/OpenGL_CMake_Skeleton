@@ -14,6 +14,7 @@
 #include <initializer_list>
 #include <map>
 #include <string>
+#include <vector>
 
 class Shader;
 class ShaderProgram;
@@ -22,7 +23,13 @@ class ShaderProgram;
 class Shader {
  public:
   // Load Shader from a file
-  Shader(const std::string& filename, GLenum type);
+  Shader(const std::vector<char>& filename, GLenum type);
+
+  // Load Shader from a file
+  static Shader fromFile(const std::string& filename, GLenum type);
+
+  // Load Shader from a string
+  static Shader fromString(const std::string& shader_string, GLenum type);
 
   // provide opengl shader identifiant.
   GLuint getHandle() const;
@@ -67,7 +74,10 @@ class ShaderProgram {
   GLint operator[](const std::string& name);
 
   // affect uniform
+  void setUniform(const std::string& name, float x, float y);
   void setUniform(const std::string& name, float x, float y, float z);
+  void setUniform(const std::string& name, const glm::vec2& v);
+  void setUniform(const std::string& name, const glm::dvec2& v);
   void setUniform(const std::string& name, const glm::vec3& v);
   void setUniform(const std::string& name, const glm::dvec3& v);
   void setUniform(const std::string& name, const glm::vec4& v);
